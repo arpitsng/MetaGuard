@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MetaGuard - File Security Analysis</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            --bg-primary: #0f1419;
+            --bg-secondary: #1a1f29;
+            --bg-tertiary: #252b37;
+            --surface: #2d3748;
+            --surface-hover: #374151;
+            --accent: #00d4ff;
+            --accent-dark: #0099cc;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --text-primary: #ffffff;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            --border: #374151;
+            --glow: 0 0 20px rgba(0, 212, 255, 0.3);
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2rem;
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-lg);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent), var(--success), var(--warning));
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent), var(--success));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+            text-shadow: var(--glow);
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            font-weight: 400;
+        }
+
+        .upload-section {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 3rem;
+            margin-bottom: 3rem;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-lg);
+            text-align: center;
+        }
+
+        .upload-section h2 {
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            font-size: 1.8rem;
+            font-weight: 600;
+        }
+
+        .upload-section p {
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            font-size: 1rem;
+        }
+
+        .file-drop-zone {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 3rem 2rem;
+            margin: 2rem 0;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            background: var(--bg-tertiary);
+        }
+
+        .file-drop-zone:hover,
+        .file-drop-zone.dragover {
+            border-color: var(--accent);
+            background: rgba(0, 212, 255, 0.05);
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.2);
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .file-input {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-info {
+            background: var(--surface);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-left: 4px solid var(--accent);
+            text-align: left;
+        }
+
+        .file-name {
+            color: var(--text-primary);
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .file-size {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: 0.25rem;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--surface), var(--surface-hover));
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 0.5rem;
+            position: relative;
+            overflow: hidden;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--accent);
+        }
+
+        .btn:hover:not(:disabled)::before {
+            left: 100%;
+        }
+
+        .btn:disabled {
+            background: var(--bg-tertiary);
+            color: var(--text-muted);
+            cursor: not-allowed;
+            transform: none;
+            border-color: var(--border);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+            border-color: var(--accent);
+            color: var(--bg-primary);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            box-shadow: var(--glow);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success), #059669);
+            border-color: var(--success);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, var(--warning), #d97706);
+            border-color: var(--warning);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger), #dc2626);
+            border-color: var(--danger);
+            color: white;
+        }
+
+        .loading {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 4rem 2rem;
+            text-align: center;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .spinner {
+            width: 64px;
+            height: 64px;
+            border: 4px solid var(--border);
+            border-top: 4px solid var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 2rem;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-text {
+            color: var(--text-primary);
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .loading-subtext {
+            color: var(--text-secondary);
+        }
+
+        .results {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+            margin-top: 2rem;
+        }
+
+        .results-header {
+            background: linear-gradient(135deg, var(--surface), var(--surface-hover));
+            padding: 2rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .results-header h2 {
+            color: var(--text-primary);
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .results-body {
+            padding: 2rem;
+        }
+
+        .section {
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        .section-header {
+            background: var(--surface);
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .section-header h3 {
+            color: var(--text-primary);
+            font-size: 1.3rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .section-content {
+            padding: 1.5rem;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 1rem 0;
+            border-bottom: 1px solid rgba(55, 65, 81, 0.5);
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: var(--text-secondary);
+            font-weight: 600;
+            flex: 0 0 30%;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+        }
+
+        .info-value {
+            color: var(--text-primary);
+            flex: 1;
+            margin-left: 2rem;
+            word-break: break-word;
+        }
+
+        .status-clean {
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        .status-warning {
+            color: var(--warning);
+            font-weight: 600;
+        }
+
+        .status-danger {
+            color: var(--danger);
+            font-weight: 600;
+            background: rgba(239, 68, 68, 0.1);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .metadata-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--bg-primary);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .metadata-table th,
+        .metadata-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .metadata-table th {
+            background: var(--surface);
+            color: var(--text-primary);
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .metadata-table td {
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+        }
+
+        .metadata-table tr:hover {
+            background: rgba(55, 65, 81, 0.3);
+        }
+
+        .actions {
+            background: linear-gradient(135deg, var(--bg-tertiary), var(--surface));
+            padding: 2rem;
+            border-top: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .actions h3 {
+            color: var(--text-primary);
+            margin-bottom: 2rem;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .actions-grid {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .alert {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--danger);
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            text-align: center;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .upload-section,
+            .results-body {
+                padding: 1.5rem;
+            }
+
+            .info-row {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .info-label {
+                flex: none;
+            }
+
+            .info-value {
+                margin-left: 0;
+            }
+
+            .actions-grid {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>MetaGuard</h1>
+            <p>File Security & Forensics Analysis tool</p>
+        </div>
+
+        <div class="upload-section">
+            <h2>File Analysis Portal</h2>
+            <p>Upload any file to perform comprehensive security, metadata, and threat analysis</p>
+
+            <div class="file-drop-zone" id="dropZone">
+                <span class="upload-icon">📁</span>
+                <p style="font-size: 1.2rem; margin-bottom: 0.5rem; color: var(--text-primary);">Drop file here or click
+                    to browse</p>
+                <p style="color: var(--text-muted);">Supports: Images, PDFs, Documents, Executables</p>
+                <input type="file" id="fileInput" class="file-input" title="Select a file to analyze">
+            </div>
+
+            <div id="fileInfo" class="file-info hidden">
+                <div class="file-name" id="fileName"></div>
+                <div class="file-size" id="fileSize"></div>
+            </div>
+
+            <button id="analyzeBtn" class="btn btn-primary" disabled>
+                🔍 Start Deep Analysis
+            </button>
+        </div>
+
+        <div id="loading" class="loading hidden">
+            <div class="spinner"></div>
+            <div class="loading-text">Analyzing File</div>
+            <div class="loading-subtext">Running comprehensive security analysis...</div>
+        </div>
+
+        <div id="results" class="results hidden">
+            <!-- Results will be populated here -->
+        </div>
+    </div>
+
+    <script>
+        let selectedFile = null;
+        let analysisData = null;
+
+        // DOM elements
+        const fileInput = document.getElementById('fileInput');
+        const dropZone = document.getElementById('dropZone');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const loading = document.getElementById('loading');
+        const results = document.getElementById('results');
+
+        // File upload event handlers
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileSelection(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelection(e.target.files[0]);
+            }
+        });
+
+        analyzeBtn.addEventListener('click', () => {
+            if (selectedFile) {
+                analyzeFile();
+            }
+        });
+
+        function handleFileSelection(file) {
+            selectedFile = file;
+            fileName.textContent = `📄 ${file.name}`;
+            fileSize.textContent = formatFileSize(file.size);
+            fileInfo.classList.remove('hidden');
+            analyzeBtn.disabled = false;
+            results.classList.add('hidden');
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        async function analyzeFile() {
+            loading.classList.remove('hidden');
+            results.classList.add('hidden');
+
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+
+            try {
+                const response = await fetch('/analyze/', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                analysisData = await response.json();
+                displayResults(analysisData);
+            } catch (error) {
+                displayError(error.message);
+            } finally {
+                loading.classList.add('hidden');
+            }
+        }
+
+        function displayResults(data) {
+            const resultsHTML = `
+                <div class="results-header">
+                    <h2>📊 Analysis Results</h2>
+                    <p style="color: var(--text-secondary);">Comprehensive security analysis for ${data.filename}</p>
+                </div>
+                <div class="results-body">
+                    ${generateFileTypeSection(data.true_type_analysis)}
+                    ${generateMetadataSection(data.metadata)}
+                    ${generateRisksSection(data.metadata_risks)}
+                    ${generateVirusTotalSection(data.virustotal_report)}
+                    ${generateSteganographySection(data.steganography_report)}
+                    ${generateMacroSection(data.macro_report)}
+                    ${generateURLSection(data.embedded_urls)}
+                </div>
+                ${generateActionsSection()}
+            `;
+
+            results.innerHTML = resultsHTML;
+            results.classList.remove('hidden');
+
+            // Add event listeners for action buttons
+            addActionListeners();
+        }
+
+        function generateFileTypeSection(typeData) {
+            if (!typeData) return '';
+
+            const ext = typeData.reported_ext || 'Unknown';
+            const mime = typeData.mime_type || 'Unknown';
+            const match = !(typeData.is_mismatch ?? true);
+
+            return `
+                <div class="section">
+                    <div class="section-header">
+                        <h3>🔍 File Type Analysis</h3>
+                    </div>
+                    <div class="section-content">
+                        <div class="info-row">
+                            <div class="info-label">Reported Extension:</div>
+                            <div class="info-value">${ext}</div>
+                        </div>
+                        <div class="info-row">
+                            <div class="info-label">MIME Type:</div>
+                            <div class="info-value">${mime}</div>
+                        </div>
+                        <div class="info-row">
+                            <div class="info-label">Extension Match:</div>
+                            <div class="info-value ${match ? 'status-clean' : 'status-warning'}">
+                                ${match ? '✅ Matches' : '⚠️ Mismatch'}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function generateMetadataSection(metadata) {
+            if (!metadata || Object.keys(metadata).length === 0) return '';
+
+            let tableRows = '';
+            for (const [key, value] of Object.entries(metadata)) {
+                tableRows += `
+                    <tr>
+                        <th>${key}</th>
+                        <td>${typeof value === 'object' ? JSON.stringify(value) : String(value)}</td>
+                    </tr>
+                `;
+            }
+
+            return `
+                <div class="section">
+                    <div class="section-header">
+                        <h3>📋 Metadata Information</h3>
+                    </div>
+                    <div class="section-content">
+                        <table class="metadata-table">
+                            ${tableRows}
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        function generateRisksSection(risks) {
+            if (!risks || risks.length === 0) return '';
+
+            let parsedRisks = [];
+
+            risks.forEach(risk => {
+                if (typeof risk === 'string') {
+                    let severity = 'medium';
+                    if (risk.toLowerCase().includes('high')) severity = 'high';
+                    else if (risk.toLowerCase().includes('info')) severity = 'low';
+
+                    parsedRisks.push({
+                        type: risk.includes('Privacy') ? 'Privacy' : 'Info',
+                        description: risk,
+                        severity: severity
+                    });
+                } else {
+                    parsedRisks.push(risk);  // Already structured
+                }
+            });
+
+            let riskItems = parsedRisks.map(risk => {
+                const statusClass = risk.severity === 'high' ? 'status-danger' :
+                    risk.severity === 'medium' ? 'status-warning' : 'status-clean';
+
+                return `
+                    <div class="info-row">
+                        <div class="info-label">${risk.type}:</div>
+                        <div class="info-value">
+                            <span class="${statusClass}">${risk.description}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            return `
+                <div class="section">
+                    <div class="section-header">
+                        <h3>⚠️ Security Risks</h3>
+                    </div>
+                    <div class="section-content">
+                        ${riskItems}
+                    </div>
+                </div>
+            `;
+        }
+
+        function generateVirusTotalSection(vtReport) {
+            if (!vtReport) return '';
+
+            let statusText, statusClass, detailsText, actionText = '';
+
+            if (vtReport.error) {
+                statusText = '❌ API Error';
+                statusClass = 'status-danger';
+                detailsText = vtReport.error;
+            } else if (vtReport.status === 'not_found') {
+                statusText = '🔍 File Not Found';
+                statusClass = 'status-warning';
+                detailsText = 'This file has not been previously scanned by VirusTotal';
+                actionText = `You can manually check this file by visiting: <a href="https://www.virustotal.com/gui/file/${vtReport.hash}" target="_blank" style="color: var(--accent); text-decoration: none;">VirusTotal File Check</a>`;
+            } else if (vtReport.status === 'found') {
+                const isClean = (vtReport.malicious === 0 && vtReport.suspicious === 0);
+                statusText = isClean ? '✅ Clean' : '🚨 Threats Detected';
+                statusClass = isClean ? 'status-clean' : 'status-danger';
+                detailsText = `${vtReport.malicious || 0} malicious, ${vtReport.suspicious || 0} suspicious, scanned by ${vtReport.total_vendors || 0} vendors`;
+            } else {
+                statusText = '❓ Unknown Status';
+                statusClass = 'status-warning';
+                detailsText = 'Unable to determine scan status';
+            }
+
+            return `
+                <div class="section">
+                    <div class="section-header">
+                        <h3>🛡️ VirusTotal Scan</h3>
+                    </div>
+                    <div class="section-content">
+                        <div class="info-row">
+                            <div class="info-label">Status:</div>
+                            <div class="info-value ${statusClass}">
+                                ${statusText}
+                            </div>
+                        </div>
+                        <div class="info-row">
+                            <div class="info-label">File Hash (SHA256):</div>
+                            <div class="info-value" style="font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; word-break: break-all;">
+                                ${vtReport.hash || 'N/A'}
+                            </div>
+                        </div>
+                        <div class="info-row">
+                            <div class="info-label">Details:</div>
+                            <div class="info-value">${detailsText}</div>
+                        </div>
+                        ${actionText ? `
+                        <div class="info-row">
+                            <div class="info-label">Action:</div>
+                            <div class="info-value">${actionText}</div>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        function generateSteganographySection(stegReport) {
+            if (!stegReport) return '';
+
+            const lowerCaseReport = stegReport.toLowerCase();
+            const hasSteg = lowerCaseReport.includes("detected");
+            const statusClass = hasSteg ? 'status-warning' : 'status-clean';
+
+            return `
+                <div class="section">
+                    <div class="section-header">
+                        <h3>🕵️ Steganography Analysis</h3>
+                    </div>
+                    <div class="section-content">
+                        <div class="info-row">
+                            <div class="info-label">LSB Analysis:</div>
+                            <div class="info-value ${statusClass}">
+                                ${stegReport}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function generateMacroSection(macroReport) {
+            if (!macroReport) return '';
+
+            const hasMacros = macroReport.has_macros || false;
+            const statusClass = hasMacros ? 'status-danger' : 'status-clean';
+
+            return `
+                <div class="section">
+                    <div class="section-header">
+                        <h3>📜 Macro Analysis</h3>
+                    </div>
+                    <div class="section-content">
+                        <div class="info-row">
+                            <div class="info-label">Macros Detected:</div>
+                            <div class="info-value ${statusClass}">
+                                ${hasMacros ? '🚨 Macros found' : '✅ No macros detected'}
+                            </div>
+                        </div>
+                        ${macroReport.macro_details ? `
+                        <div class="info-row">
+                            <div class="info-label">Details:</div>
+                            <div class="info-value">${macroReport.macro_details}</div>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        function generateURLSection(urls) {
+            if (!urls || urls.length === 0) return '';
+
+            let urlList = '';
+            urls.forEach(url => {
+                urlList += `<div style="margin-bottom: 0.5rem; font-family: 'JetBrains Mono', monospace; color: var(--accent);">${url}</div>`;
+            });
+
+            return `
+                <div class="section">
+                    <div class="section-header">
+                        <h3>🔗 Embedded URLs</h3>
+                    </div>
+                    <div class="section-content">
+                        ${urlList}
+                    </div>
+                </div>
+            `;
+        }
+
+        function generateActionsSection() {
+            return `
+                <div class="actions">
+                    <h3>🛠️ File Actions</h3>
+                    <div class="actions-grid">
+                        <button id="cleanBtn" class="btn btn-success">
+                            🧹 Clean Metadata
+                        </button>
+                        <button id="destroyStegBtn" class="btn btn-warning">
+                            🔧 Destroy Steganography
+                        </button>
+                        <button id="analyzeNewBtn" class="btn btn-primary">
+                            📁 Analyze New File
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function addActionListeners() {
+            const cleanBtn = document.getElementById('cleanBtn');
+            const destroyStegBtn = document.getElementById('destroyStegBtn');
+            const analyzeNewBtn = document.getElementById('analyzeNewBtn');
+
+            if (cleanBtn) {
+                cleanBtn.addEventListener('click', () => performAction('/clean/', 'cleaned'));
+            }
+
+            if (destroyStegBtn) {
+                destroyStegBtn.addEventListener('click', () => performAction('/destroy-steg/', 'steg_destroyed'));
+            }
+
+            if (analyzeNewBtn) {
+                analyzeNewBtn.addEventListener('click', () => {
+                    results.classList.add('hidden');
+                    fileInfo.classList.add('hidden');
+                    analyzeBtn.disabled = true;
+                    selectedFile = null;
+                    analysisData = null;
+                    fileInput.value = '';
+                });
+            }
+        }
+
+        async function performAction(endpoint, actionType) {
+            if (!selectedFile) return;
+
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = `${selectedFile.name.split('.')[0]}_${actionType}.${selectedFile.name.split('.').pop()}`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                } else {
+                    const errorData = await response.json();
+                    alert(`Action failed: ${errorData.error}`);
+                }
+            } catch (error) {
+                alert(`Action failed: ${error.message}`);
+            }
+        }
+
+        function displayError(message) {
+            results.innerHTML = `
+                <div class="alert">
+                    <h3>❌ Analysis Failed</h3>
+                    <p>${message}</p>
+                </div>
+            `;
+            results.classList.remove('hidden');
+        }
+    </script>
+</body>
+
+</html>

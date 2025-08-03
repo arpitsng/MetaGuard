@@ -1,7 +1,3 @@
-# =================================================================
-# MetaGuard v1.2 - Self-Contained Full-Stack App
-# =================================================================
-
 import os
 import uvicorn
 import tempfile

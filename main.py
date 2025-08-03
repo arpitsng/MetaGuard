@@ -1,7 +1,3 @@
-# =================================================================
-# MetaGuard v1.1 - API-Ready Forensics Engine
-# =================================================================
-
 import os
 import argparse
 import string

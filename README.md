@@ -47,16 +47,13 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 ### 3. Install dependencies
 
-> 🐧 On **Linux**, ensure you have `libmagic` installed:  
-> `sudo apt install libmagic1`
-
 ```bash
 pip install -r requirements.txt
 ```
 
 📌 Note:
-- Linux uses: `python-magic==0.4.27`
-- Windows users must install: `python-magic-bin==0.4.14`
+- The Vercel deployment uses builtin MIME guessing if `python-magic` is unavailable.
+- For local development, you may still install `libmagic` on Linux for better detection.
 
 ### 4. Set up environment variables
 
@@ -82,7 +79,33 @@ Then visit: [http://localhost:8000](http://localhost:8000)
 
 ---
 
-## 📂 Project Structure
+## � Deploying to Vercel
+
+1. Install the Vercel CLI if needed:
+
+```bash
+npm install -g vercel
+```
+
+2. Deploy from the project root:
+
+```bash
+vercel --prod
+```
+
+3. Add your VirusTotal API key:
+
+```bash
+vercel env add VIRUSTOTAL_API_KEY production
+```
+
+4. Vercel builds using `api.py` as the Python entrypoint.
+
+> The app now falls back to extension-based MIME detection when `python-magic` is unavailable in the deployment environment.
+
+---
+
+## �📂 Project Structure
 
 ```
 MetaGuard/

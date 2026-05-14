@@ -4,10 +4,15 @@ import string
 import hashlib
 import re
 import zipfile
+import mimetypes
 from dotenv import load_dotenv
 
-# --- Library Imports ---
-import magic
+# --- Optional library imports ---
+try:
+    import magic
+except ImportError:
+    magic = None
+
 import piexif
 import requests
 from PIL import Image
@@ -60,18 +65,30 @@ def analyze_metadata_risks(metadata_dict, file_type):
     return warnings
 
 def get_true_file_type(file_path):
-    try:
-        mime_type = magic.from_file(file_path, mime=True)
-        reported_ext = os.path.splitext(file_path)[1].lower()
-        is_mismatch = (reported_ext == '.jpg' and 'jpeg' not in mime_type) or \
-                      (reported_ext == '.pdf' and 'pdf' not in mime_type)
-        return {
-            "reported_ext": reported_ext,
-            "mime_type": mime_type,
-            "is_mismatch": is_mismatch
-        }
-    except Exception as e:
-        return {"error": str(e)}
+    reported_ext = os.path.splitext(file_path)[1].lower()
+    if magic:
+        try:
+            mime_type = magic.from_file(file_path, mime=True)
+            is_mismatch = (reported_ext == '.jpg' and 'jpeg' not in mime_type) or \
+                          (reported_ext == '.pdf' and 'pdf' not in mime_type)
+            return {
+                "reported_ext": reported_ext,
+                "mime_type": mime_type,
+                "is_mismatch": is_mismatch
+            }
+        except Exception:
+            pass
+
+    mime_type, _ = mimetypes.guess_type(file_path)
+    if not mime_type:
+        mime_type = 'application/octet-stream'
+
+    return {
+        "reported_ext": reported_ext,
+        "mime_type": mime_type,
+        "is_mismatch": False,
+        "note": "python-magic not available or content detection failed; using extension-based mime guess."
+    }
 
 def detect_lsb_steganography(file_path):
     try:

@@ -3,7 +3,7 @@
 
 **MetaGuard** is a web-based file forensics and threat analysis tool that performs deep inspection of uploaded files. It offers metadata extraction, steganography detection, macro checking, VirusTotal scan, and privacy-focused file cleaning — all in one place.
 
-🌐 **Live Demo:** [https://metaguard-6.onrender.com](https://metaguard-6.onrender.com)
+🌐 **Live Demo:** [https://meta-guard-lzfu.vercel.app/](https://meta-guard-lzfu.vercel.app/)
 
 ---
 
